@@ -1,16 +1,26 @@
-let Moves = function (_space, _neighbors) {
-  let space = _space;
-  // neighbors is a list of spaces that the knight can move from a given space
-  let neighbors = _neighbors;
+let Square = function (_x, _y) {
+  let x = _x;
+  let y = _y;
 
-  return { space, neighbors };
+  let toString = () => {
+    return `${x},${y}`;
+  };
+
+  return { x, y, toString };
 };
 
-let Parents = function (_space, _parent) {
-  let space = _space;
-  let parent = _parent;
+let Position = function (_square, _neighbors, _predecessor = null) {
+  let square = _square;
+  // neighbors is a list of spaces that the knight can move from a given space
+  let neighbors = _neighbors;
+  let predecessor = _predecessor;
 
-  return { space, parent };
+  // let getPredecessor = () => predecessor;
+  // let setPredecessor = (pred) => {
+  //   predecessor = predecessor || pred;
+  // };
+
+  return { square, neighbors, predecessor };
 };
 
 class Board {
@@ -66,49 +76,57 @@ class Board {
     let _moves = {};
     for (let space of arr) {
       let neighbors = this.moveOptions(space);
-      _moves[`${space[0]},${space[1]}`] = Moves(space, neighbors);
+      let square = new Square(...space);
+      _moves[square.toString()] = Position(square, neighbors);
     }
     return _moves;
   }
 
-  knightMoves(knight, newSpace) {
+  printPath(_path) {
+    let out = "Moves were: ";
+    _path.forEach((p) => (out += `-> ${p} `));
+    console.log(out);
+    console.log("");
+  }
+
+  knightMoves(_knight, _newSpace) {
     let queue = [];
     let visited = [];
-    let parents = {};
-    // add the node to the queue
-    if (knight === newSpace) {
-      return;
-    }
+    let knight = new Square(..._knight);
+    let newSpace = new Square(..._newSpace);
+    let path = [];
+
     queue.push(knight);
     visited.push(knight);
 
     while (queue.length > 0) {
       let space = queue.shift();
       //console.log(space);
-      if (space[0] === newSpace[0] && space[1] === newSpace[1]) {
-        // console.log("Made it");
-        // console.log(parents[`${space[0]},${space[1]}`]);
+      if (space.x === newSpace.x && space.y === newSpace.y) {
         let path = [];
-        let tmp = `${space[0]},${space[1]}`;
-        path.push(tmp);
-        while (tmp !== `${knight[0]},${knight[1]}`) {
-          // console.log(tmp);
-          // console.log(parents[tmp]);
-          tmp = parents[tmp].parent;
-          path.push(tmp);
+        path.push(space.toString());
+        while (!path.includes(knight.toString())) {
+          //console.log(path);
+          //console.log(space);
+          space = this.moves[space.toString()].predecessor;
+          path.push(space.toString());
         }
-        console.log(space);
-        return path.reverse();
+        console.log(
+          `The knight moved from ${knight.toString()} to ${newSpace.toString()} in ${
+            path.length
+          } moves:`
+        );
+        path.reverse();
+        this.printPath(path);
+        return path;
       } else {
-        let entry = `${space[0]},${space[1]}`;
-        for (let neighbor of this.moves[entry].neighbors) {
-          parents[`${neighbor[0]},${neighbor[1]}`] = Parents(
-            `${neighbor[0]},${neighbor[1]}`,
-            `${space[0]},${space[1]}`
-          );
-          if (!visited.includes(neighbor)) {
+        for (let neighbor of this.moves[space.toString()].neighbors) {
+          neighbor = new Square(...neighbor);
+          if (!visited.includes(neighbor.toString())) {
+            //console.log(neighbor);
             queue.push(neighbor);
-            visited.push(neighbor);
+            visited.push(neighbor.toString());
+            this.moves[neighbor.toString()].predecessor = space.toString();
           }
         }
       }
@@ -118,9 +136,6 @@ class Board {
 }
 
 let knight = new Board(8, 8);
-console.log(knight.board);
-console.log(knight.moves);
-console.log(knight.moves["3,3"]);
-console.log(knight.knightMoves([0, 0], [4, 4]));
-console.log(knight.knightMoves([3, 3], [7, 6]));
-console.log(knight.knightMoves([0, 0], [7, 7]));
+knight.knightMoves([0, 0], [3, 3]);
+knight.knightMoves([6, 4], [5, 1]);
+knight.knightMoves([0, 0], [7, 7]);
